@@ -1,0 +1,41 @@
+# Dépendances locales
+node_modules
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Fichiers d’environnement (jamais embarquer les secrets)
+.env
+.env.*
+
+# Tests, outillage et artefacts
+tests
+coverage
+cypress
+cypress.config.js
+*.spec.js
+*.test.js
+
+# Cache divers
+.eslintcache
+.cache
+.nyc_output
+
+# Dossiers inutiles au run
+docs
+examples
+fixtures          # ⇒ les seeds sont copiés par la step npm run seed, pas dans l’image
+.github
+.vscode
+.idea
+
+# Assets temporaires
+*.log
+*.md
+*.tgz
+*.zip
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+*.swp

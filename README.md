@@ -1,16 +1,31 @@
-# Ticketing CI/CD
+# Ticketing – Full DevOps Project
 
-## local
+Simple Express.js **ticketing** application with:
+
+- MariaDB storage
+- Unit tests (Jest + supertest) & E2E tests (Cypress)
+- Docker build
+- GitHub Actions pipeline: test → build & push image → deploy via SSH
+
+---
+
+## 1. Quick start (local)
+
 ```bash
-cp .env.example .env
+# dependencies
 npm i
-npm run seed
-npm start
-```
 
-## tests
-```bash
+# copy default env and edit if needed
+cp .env.example .env
+
+# run MariaDB on host port 3311
+docker run -d --name support-db \
+  -e MYSQL_ROOT_PASSWORD=root \
+  -e MYSQL_DATABASE=supportdb \
+  -p 3311:3306 mariadb:11.4
+
+# create tables + demo data
 npm run seed
-npm test
-npx cypress run
-```
+
+# start API (http://localhost:3000)
+npm start
