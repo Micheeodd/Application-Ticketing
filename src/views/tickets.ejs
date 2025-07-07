@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Liste des tickets</title>
+
+  <!-- Style minimal, sans dépendance externe -->
+  <style>
+    :root {
+      --bg: #f9fafb;          /* gris très clair */
+      --fg: #111827;          /* quasi-noir, contraste 17:1 */
+      --accent: #2563eb;      /* bleu accessible */
+      --row-alt: #eef2ff;     /* bleu très pâle pour zébrage */
+      --border: #d1d5db;      /* gris pour bordures */
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      min-height: 100vh;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+      text-align: center;
+      color: var(--accent);
+      font-size: 1.5rem;
+    }
+
+    table {
+      width: 100%;
+      max-width: 960px;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    thead {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    th, td {
+      padding: .75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      word-break: break-word;
+    }
+
+    tbody tr:nth-child(even) { background: var(--row-alt); }
+
+    @media (max-width: 640px) {
+      table, thead, tbody, tr, th, td { display: block; }
+      thead { display: none; }
+      tr { margin-bottom: .75rem; }
+      td {
+        border: none;
+        position: relative;
+        padding-left: 45%;
+      }
+      td::before {
+        position: absolute;
+        top: 0;
+        left: 1rem;
+        font-weight: 600;
+        color: var(--accent);
+        width: 40%;
+        white-space: nowrap;
+      }
+      /* étiquettes responsive */
+      td:nth-of-type(1)::before { content: "ID"; }
+      td:nth-of-type(2)::before { content: "Type"; }
+      td:nth-of-type(3)::before { content: "Email"; }
+      td:nth-of-type(4)::before { content: "Message"; }
+    }
+  </style>
+</head>
+
+<body>
+  <div style="width:100%;max-width:960px">
+    <h1>Tickets enregistrés</h1>
+
+    <table aria-describedby="ticket-table">
+      <thead>
+        <tr><th>ID</th><th>Type</th><th>Email</th><th>Message</th></tr>
+      </thead>
+      <tbody id="ticket-table">
+      <% rows.forEach(r => { %>
+        <tr>
+          <td><%= r.id %></td>
+          <td><%= r.type %></td>
+          <td><%= r.email %></td>
+          <td><%= r.message %></td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
