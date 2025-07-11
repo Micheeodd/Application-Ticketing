@@ -7,9 +7,28 @@ on:
     branches: [main]
 
 env:
+  # Base de données
   DB_NAME: supportdb
   DB_USER: root
+  DB_PASSWORD: root
+  DB_PORT: 3306
+
+  # Auth HTTP Basic
   ADMIN_USER: admin
+  ADMIN_PASSWORD: password
+
+  # Docker Registry (exemple Docker Hub)
+  DOCKER_REGISTRY: docker.io
+  DOCKER_USER: mydockerid
+  DOCKER_TOKEN: mydockertoken
+
+  # SSH pour déploiement
+  SSH_HOST: 203.0.113.10
+  SSH_USER: ubuntu
+  SSH_KEY: |
+    -----BEGIN OPENSSH PRIVATE KEY-----
+    …colle ici ta clé privée PEM complète…
+    -----END OPENSSH PRIVATE KEY-----
 
 jobs:
   test:
@@ -19,10 +38,10 @@ jobs:
       mariadb:
         image: mariadb:11.4
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ env.DB_PASSWORD }}
           MYSQL_DATABASE: ${{ env.DB_NAME }}
         options: >-
-          --health-cmd="mysqladmin ping -h localhost -p${{ secrets.DB_PASSWORD }}"
+          --health-cmd="mysqladmin ping -h localhost -p${{ env.DB_PASSWORD }}"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=20
@@ -39,13 +58,19 @@ jobs:
 
       - run: npm run seed
         env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_PORT: 3306 
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ env.DB_PORT }}
+          DB_USER: ${{ env.DB_USER }}
+          DB_PASSWORD: ${{ env.DB_PASSWORD }}
+          DB_NAME: ${{ env.DB_NAME }}
 
       - run: npm test
         env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_PORT: 3306
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ env.DB_PORT }}
+          DB_USER: ${{ env.DB_USER }}
+          DB_PASSWORD: ${{ env.DB_PASSWORD }}
+          DB_NAME: ${{ env.DB_NAME }}
 
       - uses: cypress-io/github-action@v6
         with:
@@ -53,8 +78,11 @@ jobs:
           wait-on: http://localhost:3000
           wait-on-timeout: 120
         env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_PORT: 3306
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ env.DB_PORT }}
+          DB_USER: ${{ env.DB_USER }}
+          DB_PASSWORD: ${{ env.DB_PASSWORD }}
+          DB_NAME: ${{ env.DB_NAME }}
 
   build:
     needs: test
@@ -68,15 +96,15 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.DOCKER_REGISTRY }}    # ex. docker.io
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ env.DOCKER_USER }}
+          password: ${{ env.DOCKER_TOKEN }}
 
       - uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USER }}/ticketing:latest
+          tags: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_USER }}/ticketing:latest
 
   deploy:
     needs: build
@@ -87,27 +115,29 @@ jobs:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USER }}/ticketing:latest
+            docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_USER }}/ticketing:latest
 
-            docker rm -f ticketing-api support-db 2>/dev/null || true
-
+            # Supprime et relance la base
+            docker rm -f support-db 2>/dev/null || true
             docker run -d --name support-db \
-              -e MYSQL_ROOT_PASSWORD=${{ secrets.DB_PASSWORD }} \
+              -e MYSQL_ROOT_PASSWORD=${{ env.DB_PASSWORD }} \
               -e MYSQL_DATABASE=${{ env.DB_NAME }} \
               mariadb:11.4
 
+            # Supprime et relance l’API
+            docker rm -f ticketing-api 2>/dev/null || true
             docker run -d --name ticketing-api \
               --network container:support-db \
               -e DB_HOST=support-db \
               -e DB_PORT=3306 \
               -e DB_USER=${{ env.DB_USER }} \
-              -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+              -e DB_PASSWORD=${{ env.DB_PASSWORD }} \
               -e DB_NAME=${{ env.DB_NAME }} \
               -e ADMIN_USER=${{ env.ADMIN_USER }} \
-              -e ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }} \
+              -e ADMIN_PASSWORD=${{ env.ADMIN_PASSWORD }} \
               -p 80:3000 \
-              ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USER }}/ticketing:latest
+              ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_USER }}/ticketing:latest
